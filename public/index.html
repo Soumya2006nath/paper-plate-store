@@ -8,10 +8,13 @@
   <a class="brand" href="/"><img src="/logo.png" alt="Nabanita Group logo"><span>Nabanita Group</span></a>
   <div class="links"><a href="#products">Products</a><a href="#about">About</a><a href="#contact">Contact</a></div>
 </div></nav>
-<div class="hero">
-  <h1>Paper Plate Store</h1>
-  <p>Quality paper plates for homes, shops, events and catering. A product line of Nabanita Group.</p>
-  <a class="btn pri" href="#products">View Products</a>
+<div class="hero" id="hero">
+  <div id="hero-slides"></div>
+  <div class="hero-content">
+    <h1>Paper Plate Store</h1>
+    <p>Quality paper plates for homes, shops, events and catering. A product line of Nabanita Group.</p>
+    <a class="btn pri" href="#products">View Products</a>
+  </div>
 </div>
 <section id="products"><div class="wrap">
   <h2>Our Products</h2>
@@ -68,6 +71,25 @@
 </dialog>
 
 <script>
+/* ── Hero carousel ── */
+fetch('/api/hero').then(r => r.json()).then(slides => {
+  if (!slides.length) return;
+  const wrap = $('hero-slides');
+  slides.forEach((s, i) => {
+    const div = document.createElement('div');
+    div.className = 'hero-slide' + (i === 0 ? ' visible' : '');
+    div.style.backgroundImage = 'url(' + s.img + ')';
+    wrap.appendChild(div);
+  });
+  let idx = 0;
+  setInterval(() => {
+    const all = wrap.querySelectorAll('.hero-slide');
+    all[idx].classList.remove('visible');
+    idx = (idx + 1) % all.length;
+    all[idx].classList.add('visible');
+  }, 4000);
+});
+
 const WHATSAPP_NUMBER = '917980707565';
 const CURRENCY = '₹';
 const $ = id => document.getElementById(id);

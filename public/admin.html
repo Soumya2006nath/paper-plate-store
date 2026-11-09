@@ -8,6 +8,13 @@
   <label>Password<input id="pw" type="password"></label>
   <div class="row"><button class="pri" id="lg">Login</button></div><p id="lm" class="mute" style="padding:8px 0 0"></p></div>
 <div id="app" hidden>
+  <div class="box"><h3 style="margin:0 0 6px">Hero Carousel Photos</h3>
+    <p class="mute" style="padding:0 0 10px">These photos cycle as the background of the homepage banner.</p>
+    <label>Add photo<input id="hi" type="file" accept="image/*"></label>
+    <div class="row"><button class="pri" id="hadd">Upload Photo</button></div>
+    <p id="hm" class="mute" style="padding:8px 0 0"></p>
+    <div id="hero-thumbs" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px"></div>
+  </div>
   <div class="box"><h3 style="margin:0 0 6px" id="ft">Add item</h3>
     <div class="grid2">
       <div><label>Item name<input id="n"></label></div>
@@ -25,7 +32,7 @@ const $ = id => document.getElementById(id);
 let token = sessionStorage.getItem('tok') || '', editId = null, items = [];
 const api = (path, method = 'GET', data) => fetch('/api/' + path, { method, headers: { 'Content-Type': 'application/json', 'x-token': token }, body: data ? JSON.stringify(data) : undefined })
   .then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Error'); return j; });
-function show() { $('login').hidden = true; $('app').hidden = false; load(); }
+function show() { $('login').hidden = true; $('app').hidden = false; load(); loadHero(); }
 $('lg').onclick = async () => {
   try { token = (await api('login', 'POST', { password: $('pw').value })).token; sessionStorage.setItem('tok', token); show(); }
   catch (e) { $('lm').textContent = e.message; }
@@ -94,5 +101,34 @@ $('go').onclick = async () => {
   } catch (e) { $('msg').textContent = 'Error: ' + e.message; }
   $('go').disabled = false;
 };
+/* ── Hero photos ── */
+async function loadHero() {
+  const slides = await (await fetch('/api/hero')).json();
+  const box = $('hero-thumbs'); box.textContent = '';
+  slides.forEach(s => {
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:inline-block';
+    const img = document.createElement('img');
+    img.src = s.img; img.style.cssText = 'width:100px;height:70px;object-fit:cover;border-radius:8px;display:block;border:1px solid var(--line)';
+    const del = document.createElement('button');
+    del.textContent = '✕'; del.title = 'Remove';
+    del.style.cssText = 'position:absolute;top:3px;right:3px;padding:2px 6px;font-size:12px;background:#c0392b;color:#fff;border:none;border-radius:4px;cursor:pointer';
+    del.onclick = async () => { await api('hero/' + s.id, 'DELETE'); loadHero(); };
+    wrap.append(img, del); box.appendChild(wrap);
+  });
+  if (!slides.length) box.innerHTML = '<p class="mute">No photos yet.</p>';
+}
+$('hadd').onclick = async () => {
+  const f = $('hi').files[0];
+  if (!f) { $('hm').textContent = 'Pick a photo first.'; return; }
+  $('hadd').disabled = true; $('hm').textContent = 'Uploading…';
+  try {
+    const img = await resize(f);
+    await api('hero', 'POST', { image: img });
+    $('hi').value = ''; $('hm').textContent = 'Added!'; loadHero();
+  } catch (e) { $('hm').textContent = 'Error: ' + e.message; }
+  $('hadd').disabled = false;
+};
 if (token) show();
+
 </script></body></html>

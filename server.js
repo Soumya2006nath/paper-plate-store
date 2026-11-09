@@ -36,6 +36,18 @@ http.createServer(async (req, res) => {
       if (b.password !== PASS) return send(res, 401, { error: 'Wrong password' });
       const t = crypto.randomBytes(16).toString('hex'); tokens.add(t); return send(res, 200, { token: t });
     }
+    if (p === '/api/hero' && req.method === 'GET') return send(res, 200, rd('hero.json', []));
+    if (p === '/api/hero' && req.method === 'POST') {
+      if (!authed(req)) return send(res, 401, { error: 'Login required' });
+      const b = await body(req), img = saveImage(b.image);
+      if (!img) return send(res, 400, { error: 'Invalid image' });
+      const hero = rd('hero.json', []); hero.push({ id: Date.now().toString(36), img }); wr('hero.json', hero); return send(res, 200, { ok: true });
+    }
+    if (p.startsWith('/api/hero/') && req.method === 'DELETE') {
+      if (!authed(req)) return send(res, 401, { error: 'Login required' });
+      const hero = rd('hero.json', []); rmImage((hero.find(x => x.id === id) || {}).img);
+      wr('hero.json', hero.filter(x => x.id !== id)); return send(res, 200, { ok: true });
+    }
     if (p === '/api/enquiry' && req.method === 'POST') {
       const b = await body(req);
       const e = { id: Date.now().toString(36), item: clean(b.item, 120), name: clean(b.name, 80), phone: clean(b.phone, 20), at: Date.now() };
