@@ -1,0 +1,49 @@
+DEPLOY ON ORACLE CLOUD "ALWAYS FREE" (Ubuntu) - step by step
+=============================================================
+Your items, photos and enquiries are saved on the server disk, so they stay safe
+(unlike free Render/Railway). Menu names in Oracle's console can change slightly.
+
+A. Create the free server
+1. Sign up at cloud.oracle.com (a card is needed for identity check; choose Always Free resources only).
+2. Menu > Compute > Instances > Create instance.
+3. Image: Canonical Ubuntu 24.04. Shape: pick an "Always Free-eligible" shape
+   (Ampere VM.Standard.A1.Flex, or the small AMD one if Ampere is out of capacity -
+   either is enough for this store).
+4. Add SSH keys: choose "Generate a key pair", DOWNLOAD the private key and keep it safe.
+5. Create. Wait until it is Running and note the PUBLIC IP address.
+
+B. Open the web ports in Oracle's firewall
+1. Menu > Networking > Virtual Cloud Networks > click your VCN > click your subnet >
+   click "Default Security List".
+2. Add Ingress Rules (add one for each):  Source CIDR 0.0.0.0/0, Protocol TCP,
+   Destination Port 80   and again for   443.
+
+C. Upload the store to the server (from your computer's terminal / PowerShell)
+   Unzip paper-plate-store.zip first, then:
+       scp -i path/to/private.key -r paper-plate-store ubuntu@YOUR_PUBLIC_IP:~/
+   (If your data already has items you want to keep, they are inside the "data" and "uploads" folders.)
+
+D. Run the setup (once)
+       ssh -i path/to/private.key ubuntu@YOUR_PUBLIC_IP
+       cd paper-plate-store
+       bash setup.sh
+   It asks for your ADMIN password, installs everything, and starts the store.
+   It restarts automatically if the server reboots.
+
+E. Open it
+   Website: http://YOUR_PUBLIC_IP        Admin: http://YOUR_PUBLIC_IP/admin
+
+F. Optional: your own domain + HTTPS (free)
+   1. Buy a domain and point its "A record" to YOUR_PUBLIC_IP.
+   2. On the server:  sudo apt install -y certbot python3-certbot-nginx
+                      sudo certbot --nginx -d yourdomain.com
+   Always use HTTPS before sharing the admin page widely, so your password is encrypted.
+
+Useful commands on the server
+   sudo systemctl status nabanita-store     (is it running?)
+   sudo systemctl restart nabanita-store    (restart)
+   journalctl -u nabanita-store -n 50       (logs)
+Update the website later: upload the changed files again with scp, then restart the service.
+BACKUP: copy the "data" and "uploads" folders from the server now and then:
+   scp -i path/to/private.key -r ubuntu@YOUR_PUBLIC_IP:~/paper-plate-store/data ./backup-data
+   scp -i path/to/private.key -r ubuntu@YOUR_PUBLIC_IP:~/paper-plate-store/uploads ./backup-uploads

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nabanita Group - Paper Plate Store</title>
+<meta name="description" content="Nabanita Group, Nimtala, Samudragarh, Purba Bardhaman. Quality paper plates.">
+<link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/style.css"></head>
+<body>
+<nav><div class="wrap">
+  <a class="brand" href="/"><img src="/logo.png" alt="Nabanita Group logo"><span>Nabanita Group</span></a>
+  <div class="links"><a href="#products">Products</a><a href="#about">About</a><a href="#contact">Contact</a></div>
+</div></nav>
+<div class="hero">
+  <h1>Paper Plate Store</h1>
+  <p>Quality paper plates for homes, shops, events and catering. A product line of Nabanita Group.</p>
+  <a class="btn pri" href="#products">View Products</a>
+</div>
+<section id="products"><div class="wrap">
+  <h2>Our Products</h2>
+  <p class="sub">Choose an item and tap Enquire. We will reply on WhatsApp.</p>
+  <div id="grid"></div>
+</div></section>
+<section id="about" class="about"><div class="wrap cols">
+  <div><h2>About Nabanita Group</h2>
+    <p class="sub">Nabanita Group is based in Nimtala, Samudragarh, Purba Bardhaman, West Bengal. Through the Paper Plate Store we supply paper plates in different sizes and pack quantities. For bulk or regular orders, send us an enquiry.</p></div>
+</div></section>
+<section id="contact"><div class="wrap">
+  <h2>Contact Us</h2><p class="sub"></p>
+  <div class="contact-box">
+    <h3>Nabanita Group</h3>
+    <p style="margin:0 0 10px">Nimtala, Samudragarh,<br>Purba Bardhaman, West Bengal,<br>PIN 713519</p>
+    <p style="margin:0 0 14px">Phone / WhatsApp: <a href="tel:+917980707565">+91 79807 07565</a></p>
+    <a class="btn pri" target="_blank" rel="noopener" href="https://wa.me/917980707565?text=Hello%20Nabanita%20Group">Chat on WhatsApp</a>
+    <a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=Nimtala+Samudragarh+Purba+Bardhaman+713519">View on Map</a>
+  </div>
+</div></section>
+<footer>&copy; <span id="yr"></span> Nabanita Group. All rights reserved.</footer>
+<dialog id="dlg">
+  <h3 style="margin:0 0 4px">Enquire about this item</h3>
+  <div id="dit" style="color:var(--acc);font-weight:600"></div>
+  <label>Your name<input id="qn" autocomplete="name"></label>
+  <label>Phone number<input id="qp" type="tel" autocomplete="tel"></label>
+  <p id="qm" style="font-size:14px;color:var(--mute);margin:10px 0 0"></p>
+  <div class="row"><button class="pri" id="qs">Send enquiry</button><button id="qc">Close</button></div>
+</dialog>
+<script>
+const WHATSAPP_NUMBER = '917980707565';   // country code + number, no + or spaces
+const CURRENCY = '₹';
+const $ = id => document.getElementById(id); let cur = null;
+$('yr').textContent = new Date().getFullYear();
+fetch('/api/items').then(r => r.json()).then(items => {
+  const g = $('grid');
+  if (!items.length) { g.innerHTML = '<p class="mute" style="grid-column:1/-1">No items yet. Please check back soon.</p>'; return; }
+  items.forEach(it => {
+    const c = document.createElement('div'); c.className = 'card';
+    const im = document.createElement('img'); im.src = it.img; im.alt = it.name; im.loading = 'lazy';
+    const info = document.createElement('div'); info.className = 'info';
+    const n = document.createElement('p'); n.className = 'name'; n.textContent = it.name;
+    const p = document.createElement('p'); p.className = 'price'; p.textContent = CURRENCY + it.price + ' ';
+    if (it.unit) { const s = document.createElement('small'); s.textContent = '/ ' + it.unit; p.appendChild(s); }
+    const b = document.createElement('button'); b.className = 'pri'; b.textContent = 'Enquire';
+    b.onclick = () => { cur = it; $('dit').textContent = it.name + ' (' + CURRENCY + it.price + (it.unit ? ' / ' + it.unit : '') + ')'; $('qm').textContent = ''; $('dlg').showModal(); };
+    info.append(n, p, b); c.append(im, info); g.appendChild(c);
+  });
+});
+$('qc').onclick = () => $('dlg').close();
+$('qs').onclick = () => {
+  const name = $('qn').value.trim(), phone = $('qp').value.trim();
+  if (!name || phone.replace(/\D/g, '').length < 7) { $('qm').textContent = 'Please enter your name and a valid phone number.'; return; }
+  const msg = 'Hello Nabanita Group, I am interested in: ' + cur.name + ' (' + CURRENCY + cur.price + (cur.unit ? ' / ' + cur.unit : '') + ').\nName: ' + name + '\nPhone: ' + phone;
+  const wa = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
+  window.open(wa, '_blank');
+  $('qm').innerHTML = 'Opening WhatsApp… <a target="_blank" rel="noopener" href="' + wa + '">Tap here if it did not open</a>';
+  fetch('/api/enquiry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item: cur.name, name, phone }) }).catch(() => {});
+};
+</script></body></html>

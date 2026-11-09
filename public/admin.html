@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin - Nabanita Group</title><link rel="icon" href="/favicon.png"><link rel="stylesheet" href="/style.css"></head>
+<body>
+<nav><div class="wrap"><a class="brand" href="/"><img src="/logo.png" alt=""><span>Nabanita Group - Admin</span></a><div class="links"><a href="/">View website</a></div></div></nav>
+<main class="wrap" style="padding-top:24px;padding-bottom:48px">
+<div class="box" id="login"><h3 style="margin:0">Login</h3>
+  <label>Password<input id="pw" type="password"></label>
+  <div class="row"><button class="pri" id="lg">Login</button></div><p id="lm" class="mute" style="padding:8px 0 0"></p></div>
+<div id="app" hidden>
+  <div class="box"><h3 style="margin:0 0 6px" id="ft">Add item</h3>
+    <div class="grid2">
+      <div><label>Item name<input id="n"></label></div>
+      <div><label>Price<input id="p" type="number" min="0" step="0.01"></label></div>
+      <div><label>Per qty (e.g. 100 pcs)<input id="u"></label></div>
+      <div><label>Photo<input id="ph" type="file" accept="image/*"></label></div>
+    </div>
+    <div class="row"><button class="pri" id="go">Add item</button><button id="cancel" hidden>Cancel</button></div>
+    <p id="msg" class="mute" style="padding:8px 0 0"></p></div>
+  <div class="box"><h3 style="margin:0 0 6px">Items</h3><div id="items"></div></div>
+  <div class="box"><h3 style="margin:0 0 6px">Customer enquiries</h3><div id="enq"></div></div>
+</div></main>
+<script>
+const $ = id => document.getElementById(id);
+let token = sessionStorage.getItem('tok') || '', editId = null, items = [];
+const api = (path, method = 'GET', data) => fetch('/api/' + path, { method, headers: { 'Content-Type': 'application/json', 'x-token': token }, body: data ? JSON.stringify(data) : undefined })
+  .then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.error || 'Error'); return j; });
+function show() { $('login').hidden = true; $('app').hidden = false; load(); }
+$('lg').onclick = async () => {
+  try { token = (await api('login', 'POST', { password: $('pw').value })).token; sessionStorage.setItem('tok', token); show(); }
+  catch (e) { $('lm').textContent = e.message; }
+};
+$('pw').onkeydown = e => { if (e.key === 'Enter') $('lg').click(); };
+function resize(file) {   // shrink photo to max 1200px so uploads are fast
+  return new Promise((ok, no) => {
+    const img = new Image(), r = new FileReader();
+    r.onload = () => { img.src = r.result; }; r.onerror = no; img.onerror = no;
+    img.onload = () => {
+      const s = Math.min(1, 1200 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = img.width * s; c.height = img.height * s; c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      ok(c.toDataURL('image/jpeg', 0.85));
+    };
+    r.readAsDataURL(file);
+  });
+}
+async function load() {
+  try {
+    items = await (await fetch('/api/items')).json();
+    const box = $('items'); box.textContent = '';
+    if (!items.length) box.innerHTML = '<p class="mute">No items yet.</p>';
+    items.forEach(it => {
+      const r = document.createElement('div'); r.className = 'it';
+      const l = document.createElement('div'); l.style.display = 'flex'; l.style.alignItems = 'center';
+      const im = document.createElement('img'); im.src = it.img;
+      const t = document.createElement('div'); t.textContent = it.name + ' - ₹' + it.price + (it.unit ? ' / ' + it.unit : '');
+      l.append(im, t);
+      const a = document.createElement('div');
+      const e = document.createElement('button'); e.textContent = 'Edit'; e.onclick = () => edit(it);
+      const d = document.createElement('button'); d.textContent = 'Delete'; d.style.marginLeft = '6px';
+      d.onclick = async () => { if (confirm('Delete "' + it.name + '"?')) { await api('items/' + it.id, 'DELETE'); load(); } };
+      a.append(e, d); r.append(l, a); box.appendChild(r);
+    });
+    const q = await api('enquiries'), eb = $('enq'); eb.textContent = '';
+    if (!q.length) eb.innerHTML = '<p class="mute">No enquiries yet.</p>';
+    q.forEach(x => {
+      const r = document.createElement('div'); r.className = 'q';
+      const l = document.createElement('div');
+      const t = document.createElement('strong'); t.textContent = x.item;
+      const s = document.createElement('small'); s.style.display = 'block'; s.textContent = x.name + ' · ' + new Date(x.at).toLocaleString();
+      const a = document.createElement('a'); a.href = 'tel:' + x.phone.replace(/[^\d+]/g, ''); a.textContent = x.phone;
+      l.append(t, s, a);
+      const b = document.createElement('button'); b.textContent = 'Done';
+      b.onclick = async () => { await api('enquiries/' + x.id, 'DELETE'); load(); };
+      r.append(l, b); eb.appendChild(r);
+    });
+  } catch (e) { token = ''; sessionStorage.removeItem('tok'); $('login').hidden = false; $('app').hidden = true; }
+}
+function edit(it) {
+  editId = it.id; $('n').value = it.name; $('p').value = it.price; $('u').value = it.unit || '';
+  $('ft').textContent = 'Edit item'; $('go').textContent = 'Save changes'; $('cancel').hidden = false;
+  $('msg').textContent = 'Choose a new photo only if you want to replace it.'; scrollTo({ top: 0, behavior: 'smooth' });
+}
+function reset() { editId = null; ['n', 'p', 'u', 'ph'].forEach(i => $(i).value = ''); $('ft').textContent = 'Add item'; $('go').textContent = 'Add item'; $('cancel').hidden = true; }
+$('cancel').onclick = () => { reset(); $('msg').textContent = ''; };
+$('go').onclick = async () => {
+  const f = $('ph').files[0], data = { name: $('n').value, price: $('p').value, unit: $('u').value };
+  if (!data.name.trim() || data.price === '') { $('msg').textContent = 'Enter item name and price.'; return; }
+  if (!editId && !f) { $('msg').textContent = 'Please choose a photo.'; return; }
+  $('go').disabled = true; $('msg').textContent = 'Saving…';
+  try {
+    if (f) data.image = await resize(f);
+    await api(editId ? 'items/' + editId : 'items', editId ? 'PUT' : 'POST', data);
+    reset(); $('msg').textContent = 'Saved.'; load();
+  } catch (e) { $('msg').textContent = 'Error: ' + e.message; }
+  $('go').disabled = false;
+};
+if (token) show();
+</script></body></html>

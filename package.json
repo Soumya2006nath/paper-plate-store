@@ -1,0 +1,15 @@
+{
+  "name": "paper-plate-store",
+  "version": "1.0.0",
+  "description": "NABANITA GROUP - Paper Plate Store",
+  "main": "server.js",
+  "engines": {
+    "node": ">=16"
+  },
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["paper-plate", "store", "ecommerce"],
+  "author": "NABANITA GROUP",
+  "license": "ISC"
+}
