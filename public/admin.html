@@ -21,6 +21,12 @@
       <div><label>Price<input id="p" type="number" min="0" step="0.01"></label></div>
       <div><label>Per qty (e.g. 100 pcs)<input id="u"></label></div>
       <div><label>Photo<input id="ph" type="file" accept="image/*"></label></div>
+      <div><label>Stock status
+        <select id="sk" style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff;color:var(--ink);margin-top:4px">
+          <option value="true">✅ In Stock</option>
+          <option value="false">❌ Out of Stock</option>
+        </select>
+      </label></div>
     </div>
     <div class="row"><button class="pri" id="go">Add item</button><button id="cancel" hidden>Cancel</button></div>
     <p id="msg" class="mute" style="padding:8px 0 0"></p></div>
@@ -84,13 +90,14 @@ async function load() {
 }
 function edit(it) {
   editId = it.id; $('n').value = it.name; $('p').value = it.price; $('u').value = it.unit || '';
+  $('sk').value = it.inStock === false ? 'false' : 'true';
   $('ft').textContent = 'Edit item'; $('go').textContent = 'Save changes'; $('cancel').hidden = false;
   $('msg').textContent = 'Choose a new photo only if you want to replace it.'; scrollTo({ top: 0, behavior: 'smooth' });
 }
-function reset() { editId = null; ['n', 'p', 'u', 'ph'].forEach(i => $(i).value = ''); $('ft').textContent = 'Add item'; $('go').textContent = 'Add item'; $('cancel').hidden = true; }
+function reset() { editId = null; ['n', 'p', 'u', 'ph'].forEach(i => $(i).value = ''); $('sk').value = 'true'; $('ft').textContent = 'Add item'; $('go').textContent = 'Add item'; $('cancel').hidden = true; }
 $('cancel').onclick = () => { reset(); $('msg').textContent = ''; };
 $('go').onclick = async () => {
-  const f = $('ph').files[0], data = { name: $('n').value, price: $('p').value, unit: $('u').value };
+  const f = $('ph').files[0], data = { name: $('n').value, price: $('p').value, unit: $('u').value, inStock: $('sk').value !== 'false' };
   if (!data.name.trim() || data.price === '') { $('msg').textContent = 'Enter item name and price.'; return; }
   if (!editId && !f) { $('msg').textContent = 'Please choose a photo.'; return; }
   $('go').disabled = true; $('msg').textContent = 'Saving…';

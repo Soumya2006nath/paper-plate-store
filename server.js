@@ -66,7 +66,7 @@ http.createServer(async (req, res) => {
       const b = await body(req), img = saveImage(b.image);
       if (!clean(b.name, 120) || b.price === '' || !img) return send(res, 400, { error: 'Name, price and photo are required' });
       const items = rd('items.json', []);
-      items.push({ id: Date.now().toString(36), name: clean(b.name, 120), price: clean(b.price, 20), unit: clean(b.unit, 40), img });
+      items.push({ id: Date.now().toString(36), name: clean(b.name, 120), price: clean(b.price, 20), unit: clean(b.unit, 40), img, inStock: true });
       wr('items.json', items); return send(res, 200, { ok: true });
     }
     if (p.startsWith('/api/items/') && req.method === 'PUT') {
@@ -75,7 +75,9 @@ http.createServer(async (req, res) => {
       if (b.image) { const img = saveImage(b.image); if (img) { rmImage(it.img); it.img = img; } }
       if (clean(b.name, 120)) it.name = clean(b.name, 120);
       if (b.price !== '' && b.price != null) it.price = clean(b.price, 20);
-      it.unit = clean(b.unit, 40); wr('items.json', items); return send(res, 200, { ok: true });
+      it.unit = clean(b.unit, 40);
+      if (b.inStock !== undefined) it.inStock = b.inStock !== false && b.inStock !== 'false';
+      wr('items.json', items); return send(res, 200, { ok: true });
     }
     if (p.startsWith('/api/items/') && req.method === 'DELETE') {
       const items = rd('items.json', []); rmImage((items.find(x => x.id === id) || {}).img);

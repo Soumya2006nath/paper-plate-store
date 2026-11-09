@@ -75,19 +75,20 @@
 fetch('/api/hero').then(r => r.json()).then(slides => {
   if (!slides.length) return;
   const wrap = $('hero-slides');
-  slides.forEach((s, i) => {
+  slides.forEach(s => {
     const div = document.createElement('div');
-    div.className = 'hero-slide' + (i === 0 ? ' visible' : '');
+    div.className = 'hero-slide';
     div.style.backgroundImage = 'url(' + s.img + ')';
     wrap.appendChild(div);
   });
+  if (slides.length < 2) return;
   let idx = 0;
   setInterval(() => {
-    const all = wrap.querySelectorAll('.hero-slide');
-    all[idx].classList.remove('visible');
-    idx = (idx + 1) % all.length;
-    all[idx].classList.add('visible');
-  }, 4000);
+    idx = (idx + 1) % slides.length;
+    wrap.classList.add('animating');
+    wrap.style.transform = 'translateX(-' + (idx * 100) + '%)';
+    wrap.addEventListener('transitionend', () => wrap.classList.remove('animating'), { once: true });
+  }, 7000);
 });
 
 const WHATSAPP_NUMBER = '917980707565';
@@ -152,6 +153,13 @@ fetch('/api/items').then(r => r.json()).then(items => {
     p.className = 'price'; p.textContent = CURRENCY + it.price + ' ';
     if (it.unit) { const s = document.createElement('small'); s.textContent = '/ ' + it.unit; p.appendChild(s); }
 
+    // Stock badge
+    const inStock = it.inStock !== false;
+    const badge = document.createElement('span');
+    badge.className = 'stock-badge ' + (inStock ? 'in' : 'out');
+    badge.textContent = inStock ? 'In Stock' : 'Out of Stock';
+    if (!inStock) c.classList.add('out-of-stock');
+
     // Add to cart button
     const addBtn = document.createElement('button');
     addBtn.className = 'add-cart-btn';
@@ -188,7 +196,7 @@ fetch('/api/items').then(r => r.json()).then(items => {
     btnRow.className = 'card-btns';
     btnRow.append(addBtn, qBtn);
 
-    info.append(n, p, btnRow);
+    info.append(n, p, badge, btnRow);
     c.append(im, info);
     g.appendChild(c);
   });
