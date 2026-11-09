@@ -38,6 +38,24 @@ dialog::backdrop{background:rgba(4,4,74,.55)}
 .contact-box a{color:var(--gold)}
 footer{background:var(--navy);color:#b9bbe0;text-align:center;padding:18px 16px;font-size:14px;border-top:3px solid var(--gold)}
 .mute{color:var(--mute);text-align:center;padding:30px 0}
+
+/* ── Cart bar ── */
+#cart-bar{display:none;background:var(--card);border:2px solid var(--gold);border-radius:12px;padding:16px 20px;margin-bottom:24px;box-shadow:0 4px 16px rgba(4,4,74,.10)}
+#cart-bar.active{display:block}
+#cart-summary{font-size:16px;margin-bottom:8px}
+#cart-icon{font-size:22px;margin-right:6px}
+#cart-items{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}
+.cart-tag{background:var(--bg);border:1px solid var(--line);border-radius:20px;padding:4px 10px;font-size:13px;display:inline-flex;align-items:center;gap:6px}
+.cart-remove{background:none;border:none;color:var(--mute);cursor:pointer;padding:0;font-size:13px;line-height:1;border-radius:50%}
+.cart-remove:hover{color:#c0392b}
+
+/* ── Card buttons ── */
+.card-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.add-cart-btn{background:var(--bg);border:2px solid var(--navy);color:var(--navy);font-weight:600;border-radius:8px;padding:8px 6px;cursor:pointer;font-size:14px;transition:all .2s}
+.add-cart-btn.in-cart{background:var(--navy);color:#fff;border-color:var(--navy)}
+.add-cart-btn:hover{background:var(--navy);color:#fff}
+.enquire-btn{font-size:14px;padding:8px 6px}
+.card.in-cart{border:2px solid var(--gold);box-shadow:0 0 0 3px rgba(245,166,35,.25)}
 /* admin */
 .box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:20px}
 .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}

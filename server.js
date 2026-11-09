@@ -42,6 +42,13 @@ http.createServer(async (req, res) => {
       if (!e.item || !e.name || e.phone.replace(/\D/g, '').length < 7) return send(res, 400, { error: 'Invalid' });
       const q = rd('enquiries.json', []); q.unshift(e); wr('enquiries.json', q.slice(0, 1000)); return send(res, 200, { ok: true });
     }
+    if (p === '/api/batch-enquiry' && req.method === 'POST') {
+      const b = await body(req);
+      const items = Array.isArray(b.items) ? b.items : [];
+      const e = { id: Date.now().toString(36), items: items.map(it => clean(it, 120)), name: clean(b.name, 80), phone: clean(b.phone, 20), at: Date.now() };
+      if (!items.length || !e.name || e.phone.replace(/\D/g, '').length < 7) return send(res, 400, { error: 'Invalid' });
+      const q = rd('enquiries.json', []); q.unshift(e); wr('enquiries.json', q.slice(0, 1000)); return send(res, 200, { ok: true });
+    }
     if (p.startsWith('/api/') && !authed(req)) return send(res, 401, { error: 'Login required' });
     if (p === '/api/items' && req.method === 'POST') {
       const b = await body(req), img = saveImage(b.image);

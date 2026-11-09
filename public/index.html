@@ -15,7 +15,21 @@
 </div>
 <section id="products"><div class="wrap">
   <h2>Our Products</h2>
-  <p class="sub">Choose an item and tap Enquire. We will reply on WhatsApp.</p>
+  <p class="sub">Add items to your cart, then enquire about all of them at once. We will reply on WhatsApp.</p>
+
+  <!-- Sticky cart bar -->
+  <div id="cart-bar">
+    <div id="cart-summary">
+      <span id="cart-icon">🛒</span>
+      <strong><span id="cart-count">0</span> item(s) in cart</strong>
+    </div>
+    <div id="cart-items"></div>
+    <div class="row" style="margin-top:12px">
+      <button class="pri" id="enquire-cart-btn">Enquire All via WhatsApp</button>
+      <button id="clear-cart-btn">Clear Cart</button>
+    </div>
+  </div>
+
   <div id="grid"></div>
 </div></section>
 <section id="about" class="about"><div class="wrap cols">
@@ -33,42 +47,175 @@
   </div>
 </div></section>
 <footer>&copy; <span id="yr"></span> Nabanita Group. All rights reserved.</footer>
+<!-- Single-item quick enquiry dialog -->
 <dialog id="dlg">
   <h3 style="margin:0 0 4px">Enquire about this item</h3>
-  <div id="dit" style="color:var(--acc);font-weight:600"></div>
-  <label>Your name<input id="qn" autocomplete="name"></label>
-  <label>Phone number<input id="qp" type="tel" autocomplete="tel"></label>
+  <div id="dit" style="color:var(--acc);font-weight:600;margin-bottom:8px"></div>
+  <label>Your name<input id="qn" autocomplete="name" placeholder="e.g. Ramesh Kumar"></label>
+  <label>Phone number<input id="qp" type="tel" autocomplete="tel" placeholder="e.g. 9876543210"></label>
   <p id="qm" style="font-size:14px;color:var(--mute);margin:10px 0 0"></p>
   <div class="row"><button class="pri" id="qs">Send enquiry</button><button id="qc">Close</button></div>
 </dialog>
+
+<!-- Cart enquiry dialog -->
+<dialog id="cart-dlg">
+  <h3 style="margin:0 0 8px">Enquire about your cart</h3>
+  <div id="cart-dlg-list" style="color:var(--acc);font-weight:600;font-size:14px;margin-bottom:12px;max-height:160px;overflow-y:auto"></div>
+  <label>Your name<input id="cn" autocomplete="name" placeholder="e.g. Ramesh Kumar"></label>
+  <label>Phone number<input id="cp" type="tel" autocomplete="tel" placeholder="e.g. 9876543210"></label>
+  <p id="cm" style="font-size:14px;color:var(--mute);margin:10px 0 0"></p>
+  <div class="row"><button class="pri" id="cs">Send enquiry via WhatsApp</button><button id="cc">Close</button></div>
+</dialog>
+
 <script>
-const WHATSAPP_NUMBER = '917980707565';   // country code + number, no + or spaces
+const WHATSAPP_NUMBER = '917980707565';
 const CURRENCY = '₹';
-const $ = id => document.getElementById(id); let cur = null;
+const $ = id => document.getElementById(id);
+let cur = null;
+let cart = [];   // array of item objects
+
 $('yr').textContent = new Date().getFullYear();
+
+/* ── Cart helpers ── */
+function fmt(it) {
+  return it.name + ' (' + CURRENCY + it.price + (it.unit ? ' / ' + it.unit : '') + ')';
+}
+
+function renderCartBar() {
+  const bar = $('cart-bar');
+  const count = cart.length;
+  $('cart-count').textContent = count;
+  if (count === 0) {
+    bar.classList.remove('active');
+  } else {
+    bar.classList.add('active');
+    $('cart-items').innerHTML = cart.map(it =>
+      '<span class="cart-tag">' + it.name + ' <button class="cart-remove" data-id="' + it.id + '">✕</button></span>'
+    ).join('');
+    // wire remove buttons
+    bar.querySelectorAll('.cart-remove').forEach(btn => {
+      btn.onclick = () => {
+        cart = cart.filter(x => x.id !== btn.dataset.id);
+        // uncheck the card checkbox
+        const chk = document.querySelector('input[data-id="' + btn.dataset.id + '"]');
+        if (chk) { chk.checked = false; chk.closest('.card').classList.remove('in-cart'); }
+        renderCartBar();
+      };
+    });
+  }
+}
+
+/* ── Load products ── */
 fetch('/api/items').then(r => r.json()).then(items => {
   const g = $('grid');
-  if (!items.length) { g.innerHTML = '<p class="mute" style="grid-column:1/-1">No items yet. Please check back soon.</p>'; return; }
+  if (!items.length) {
+    g.innerHTML = '<p class="mute" style="grid-column:1/-1">No items yet. Please check back soon.</p>';
+    return;
+  }
   items.forEach(it => {
-    const c = document.createElement('div'); c.className = 'card';
-    const im = document.createElement('img'); im.src = it.img; im.alt = it.name; im.loading = 'lazy';
-    const info = document.createElement('div'); info.className = 'info';
-    const n = document.createElement('p'); n.className = 'name'; n.textContent = it.name;
-    const p = document.createElement('p'); p.className = 'price'; p.textContent = CURRENCY + it.price + ' ';
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.style.position = 'relative';
+
+    const im = document.createElement('img');
+    im.src = it.img; im.alt = it.name; im.loading = 'lazy';
+
+    const info = document.createElement('div');
+    info.className = 'info';
+
+    const n = document.createElement('p');
+    n.className = 'name'; n.textContent = it.name;
+
+    const p = document.createElement('p');
+    p.className = 'price'; p.textContent = CURRENCY + it.price + ' ';
     if (it.unit) { const s = document.createElement('small'); s.textContent = '/ ' + it.unit; p.appendChild(s); }
-    const b = document.createElement('button'); b.className = 'pri'; b.textContent = 'Enquire';
-    b.onclick = () => { cur = it; $('dit').textContent = it.name + ' (' + CURRENCY + it.price + (it.unit ? ' / ' + it.unit : '') + ')'; $('qm').textContent = ''; $('dlg').showModal(); };
-    info.append(n, p, b); c.append(im, info); g.appendChild(c);
+
+    // Add to cart button
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-cart-btn';
+    addBtn.dataset.id = it.id;
+    addBtn.innerHTML = '🛒 Add to Cart';
+    addBtn.onclick = () => {
+      if (cart.find(x => x.id === it.id)) {
+        // already in cart — remove it
+        cart = cart.filter(x => x.id !== it.id);
+        addBtn.innerHTML = '🛒 Add to Cart';
+        addBtn.classList.remove('in-cart');
+        c.classList.remove('in-cart');
+      } else {
+        cart.push(it);
+        addBtn.innerHTML = '✓ In Cart';
+        addBtn.classList.add('in-cart');
+        c.classList.add('in-cart');
+      }
+      renderCartBar();
+    };
+
+    // Quick enquire button
+    const qBtn = document.createElement('button');
+    qBtn.className = 'pri enquire-btn';
+    qBtn.textContent = 'Enquire Now';
+    qBtn.onclick = () => {
+      cur = it;
+      $('dit').textContent = fmt(it);
+      $('qm').textContent = '';
+      $('dlg').showModal();
+    };
+
+    const btnRow = document.createElement('div');
+    btnRow.className = 'card-btns';
+    btnRow.append(addBtn, qBtn);
+
+    info.append(n, p, btnRow);
+    c.append(im, info);
+    g.appendChild(c);
   });
 });
+
+/* ── Single-item enquiry ── */
 $('qc').onclick = () => $('dlg').close();
 $('qs').onclick = () => {
   const name = $('qn').value.trim(), phone = $('qp').value.trim();
-  if (!name || phone.replace(/\D/g, '').length < 7) { $('qm').textContent = 'Please enter your name and a valid phone number.'; return; }
-  const msg = 'Hello Nabanita Group, I am interested in: ' + cur.name + ' (' + CURRENCY + cur.price + (cur.unit ? ' / ' + cur.unit : '') + ').\nName: ' + name + '\nPhone: ' + phone;
+  if (!name || phone.replace(/\D/g, '').length < 7) {
+    $('qm').textContent = 'Please enter your name and a valid phone number.'; return;
+  }
+  const msg = 'Hello Nabanita Group, I am interested in: ' + fmt(cur) + '.\nName: ' + name + '\nPhone: ' + phone;
   const wa = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
   window.open(wa, '_blank');
   $('qm').innerHTML = 'Opening WhatsApp… <a target="_blank" rel="noopener" href="' + wa + '">Tap here if it did not open</a>';
-  fetch('/api/enquiry', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ item: cur.name, name, phone }) }).catch(() => {});
+  fetch('/api/enquiry', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ item: cur.name, name, phone }) }).catch(() => {});
+};
+
+/* ── Cart enquiry ── */
+$('enquire-cart-btn').onclick = () => {
+  if (!cart.length) return;
+  $('cart-dlg-list').innerHTML = cart.map(it => '• ' + fmt(it)).join('<br>');
+  $('cm').textContent = '';
+  $('cart-dlg').showModal();
+};
+
+$('clear-cart-btn').onclick = () => {
+  cart = [];
+  document.querySelectorAll('.add-cart-btn').forEach(b => {
+    b.innerHTML = '🛒 Add to Cart'; b.classList.remove('in-cart');
+  });
+  document.querySelectorAll('.card').forEach(c => c.classList.remove('in-cart'));
+  renderCartBar();
+};
+
+$('cc').onclick = () => $('cart-dlg').close();
+$('cs').onclick = () => {
+  const name = $('cn').value.trim(), phone = $('cp').value.trim();
+  if (!name || phone.replace(/\D/g, '').length < 7) {
+    $('cm').textContent = 'Please enter your name and a valid phone number.'; return;
+  }
+  const itemList = cart.map(it => '• ' + fmt(it)).join('\n');
+  const msg = 'Hello Nabanita Group, I would like to enquire about the following items:\n\n' + itemList + '\n\nName: ' + name + '\nPhone: ' + phone;
+  const wa = 'https://wa.me/' + WHATSAPP_NUMBER + '?text=' + encodeURIComponent(msg);
+  window.open(wa, '_blank');
+  $('cm').innerHTML = 'Opening WhatsApp… <a target="_blank" rel="noopener" href="' + wa + '">Tap here if it did not open</a>';
+  fetch('/api/batch-enquiry', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items: cart.map(it => it.name), name, phone }) }).catch(() => {});
 };
 </script></body></html>
